@@ -111,14 +111,11 @@ export namespace Api{
 
     function makeMethod (method:string){
         return (...api:Params)=>{
-            const fun:ApiFunction =  (req,res,next)=>{
+            const fun:ApiFunction =  (req,res,)=>{
                 if(req.method.toLocaleLowerCase()===method.toLowerCase()){
-                    return Alt(...api)(req,res,next);
-                }else{
-                    next();
+                    return Alt(...api)(req,res);
                 }
-            } 
-
+            }
             return fun;
         } 
     }
