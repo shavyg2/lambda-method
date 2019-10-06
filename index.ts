@@ -1,5 +1,4 @@
-import chain from "chain-middleware";
-
+const chain  = require("chain-middleware");
 import is from "@sindresorhus/is";
 
 export type ApiFunction = (
