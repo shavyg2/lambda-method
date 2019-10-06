@@ -1,6 +1,43 @@
 const chain  = require("chain-middleware");
 import is from "@sindresorhus/is";
 
+
+
+function Next(req:any,res:any,func:ApiFunction[]){
+
+  let position = 0;
+
+  function next(err?:any){
+    let status = 500;
+    
+    if(err){
+      if (is.primitive(err)) {
+        res.status(status).send(err);
+      } else if (is.object(err)) {
+        res.status(status).json(err);
+      } else {
+        res.status(status).send(err);
+      }
+      res.status(500).send(err);
+    }else{
+      let doing = func[position];
+
+      if(doing){
+        doing(req,res,next);
+      }else{
+        res.status(404).json({
+          message:"not found"
+        })
+      }
+    }
+    
+    position++;
+
+  }
+
+  next();
+}
+
 export type ApiFunction = (
   req: import("express").Request,
   res: import("express").Response,
@@ -61,7 +98,9 @@ ${e.stack}
   };
 
 
-  return chain(...apis,final_function);
+  return (req:any,res:any)=>{
+    return Next(req,res,[...apis,final_function])
+  }
 }
 
 
