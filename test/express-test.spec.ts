@@ -40,14 +40,11 @@ describe("Test Api",()=>{
 
 
     it("should not be able to create a hello world post request",async ()=>{
-
         const endpoint = url("/hello");
         const result = await (await fetch(endpoint,{
             method:"post"
-        })).text();
-        console.log(result);
-        //expect(result.message).toBe("hello")
-
+        })).json();
+        expect(result.message).toBe("not found")
     });
 
 })

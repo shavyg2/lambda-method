@@ -110,82 +110,84 @@ export function Api(...ApiParameters: Params) {
 }
 
 
-const Alt = Api;
+const ApiFunction = Api;
 
 export namespace Api {
 
 
-  function makeMethod(method: string) {
-    return (...api: Params) => {
-      const fun: ApiFunction = (req, res) => {
+  function createApiMethodHandler(method: string) {
+    const handler = (...apiParameters: Params) => {
+      const methodAwareHandler: ApiFunction = (req, res) => {
         if (req.method.toLocaleLowerCase() === method.toLowerCase()) {
-          return Alt(...api)(req, res);
+          return ApiFunction(...apiParameters)(req, res);
         } else {
           return IncorrectApiMethod;
         }
       }
-      return fun;
+      return methodAwareHandler;
     }
+
+    return handler;
   }
 
 
-  export const get = makeMethod("get")
+  export const get = createApiMethodHandler("get")
 
-  export const post = makeMethod("post");
+  export const post = createApiMethodHandler("post");
 
-  export const put = makeMethod("put");
+  export const put = createApiMethodHandler("put");
 
-  export const del = makeMethod("delete");
+  export const del = createApiMethodHandler("delete");
 
-  export const checkout = makeMethod("checkout");
+  export const checkout = createApiMethodHandler("checkout");
 
-  export const copy = makeMethod("copy");
+  export const copy = createApiMethodHandler("copy");
 
-  export const head = makeMethod("head");
-
-
-  export const lock = makeMethod("lock");
+  export const head = createApiMethodHandler("head");
 
 
-  export const merge = makeMethod("merge");
-
-  export const mkactivity = makeMethod("mkactivity");
+  export const lock = createApiMethodHandler("lock");
 
 
-  export const mkcol = makeMethod("mkcol");
+  export const merge = createApiMethodHandler("merge");
+
+  export const mkactivity = createApiMethodHandler("mkactivity");
 
 
-  export const move = makeMethod("move");
+  export const mkcol = createApiMethodHandler("mkcol");
 
 
-  export const msearch = makeMethod("m-search");
+  export const move = createApiMethodHandler("move");
 
 
-  export const notify = makeMethod("notify");
+  export const msearch = createApiMethodHandler("m-search");
 
 
-  export const options = makeMethod("options");
+  export const notify = createApiMethodHandler("notify");
 
 
-  export const patch = makeMethod("patch");
+  export const options = createApiMethodHandler("options");
 
 
-  export const purge = makeMethod("purge")
-
-  export const report = makeMethod("report");
-
-  export const search = makeMethod("search");
+  export const patch = createApiMethodHandler("patch");
 
 
-  export const subscribe = makeMethod("subscribe");
+  export const purge = createApiMethodHandler("purge")
+
+  export const report = createApiMethodHandler("report");
+
+  export const search = createApiMethodHandler("search");
 
 
-  export const trace = makeMethod("trace");
+  export const subscribe = createApiMethodHandler("subscribe");
 
 
-  export const unlock = makeMethod("unlock");
+  export const trace = createApiMethodHandler("trace");
 
-  export const unsubscribe = makeMethod("unsubscribe");
+
+  export const unlock = createApiMethodHandler("unlock");
+
+  export const unsubscribe = createApiMethodHandler("unsubscribe");
 
 
   export function fold(...params: Params) {
@@ -197,7 +199,7 @@ export namespace Api {
         if (handlerResult === IncorrectApiMethod) {
           return IncorrectApiMethod
         } else {
-          return Alt(handlerResult, ...possibleResultCode);
+          return ApiFunction(handlerResult, ...possibleResultCode);
         }
       }, IncorrectApiMethod);
 
