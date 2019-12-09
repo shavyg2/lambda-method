@@ -1,37 +1,31 @@
-const chain = require("chain-middleware");
 import is from "@sindresorhus/is";
 
-const Progress = Symbol.for("continue");
+const IncorrectApiMethod = Symbol.for("continue");
 
-function Next(req: any, res: any, func: ApiFunction[]) {
+const NotFoundStandardMessage = {
+  message: "not found"
+};
 
-  let position = 0;
+
+function Next(req: any, res: any, allHandlers: ApiFunction[]) {
+
+  let handlerPosition = 0;
 
   function next(err?: any) {
     let status = 500;
 
     if (err) {
-      if (is.primitive(err)) {
-        res.status(status).send(err);
-      } else if (is.object(err)) {
-        res.status(status).json(err);
-      } else {
-        res.status(status).send(err);
-      }
-      res.status(500).send(err);
+      handleNextError(err, res, status);
     } else {
-      let doing = func[position];
-
-      if (doing) {
-        doing(req, res, next);
+      let currentHandler = allHandlers[handlerPosition];
+      if (currentHandler) {
+        currentHandler(req, res, next);
       } else {
-        res.status(404).json({
-          message: "not found"
-        })
+        res.status(404).json(NotFoundStandardMessage)
       }
     }
 
-    position++;
+    handlerPosition++;
 
   }
 
@@ -47,19 +41,30 @@ export type ApiFunction = (
 
 type Params = (ApiFunction | number)[];
 
-export function Api(...funcs: Params) {
+function handleNextError(err: any, res: any, status: number) {
+  if (is.primitive(err)) {
+    res.status(status).send(err);
+  }
+  else if (is.object(err)) {
+    res.status(status).json(err);
+  }
+  else {
+    res.status(status).send(err);
+  }
+  res.status(status).send(err);
+}
 
-  let apis = funcs.filter(x => is.function_(x)) as ApiFunction[];
-  let returnCodes = funcs.filter(x => is.number(x)) as number[];
-  const status = is.number(returnCodes[0]) ? returnCodes[0] : 200;
+export function Api(...ApiParameters: Params) {
 
-  const handler = apis.pop();
+  let [mainHandler, ...middlewareHandlers] = ApiParameters.reverse().filter(x => is.function_(x)) as ApiFunction[];
+  let returnCodes = ApiParameters.filter(x => is.number(x)) as number[];
+  const defaultStatusCode = is.number(returnCodes[0]) ? returnCodes[0] : 200;
 
-  const apiFunction = (req: any, res: import("express").Response, next: any) => {
+  const promiseResolvingHandler = (req: any, res: import("express").Response, next: any) => {
     Promise.resolve(
       new Promise((r, j) => {
         try {
-          r(handler(req, res, next));
+          r(mainHandler(req, res, next));
         } catch (e) {
           j(e);
         }
@@ -71,24 +76,20 @@ export function Api(...funcs: Params) {
         }
 
         if (is.primitive(data)) {
-          res.status(status).send(data);
+          res.status(defaultStatusCode).send(data);
         } else if (is.object(data)) {
-          res.status(status).json(data);
+          res.status(defaultStatusCode).json(data);
         } else {
-          res.status(status).send(data);
+          res.status(defaultStatusCode).send(data);
         }
       })
       .catch(e => {
         console.log(e);
         if (is.error(e)) {
-          res.status(500).send(
-            `
-<pre>
-${e.message}:
-${e.stack}
-</pre>
-`.trim()
-          );
+          res.status(500).json({
+            message: e.message,
+            stack: e.stack
+          });
         } else if (is.object(e)) {
           const { code, ...data } = e as any;
           if (is.number(code)) {
@@ -104,7 +105,7 @@ ${e.stack}
 
 
   return (req: any, res: any) => {
-    return Next(req, res, [...apis, apiFunction])
+    return Next(req, res, [...middlewareHandlers, promiseResolvingHandler])
   }
 }
 
@@ -120,7 +121,7 @@ export namespace Api {
         if (req.method.toLocaleLowerCase() === method.toLowerCase()) {
           return Alt(...api)(req, res);
         } else {
-          return Progress;
+          return IncorrectApiMethod;
         }
       }
       return fun;
@@ -193,17 +194,15 @@ export namespace Api {
       let funcs = params.filter(x => is.function_(x)) as ApiFunction[];
       const result = funcs.reduce((result: any, handler) => {
         const handlerResult = handler(req, res, next);
-        if (handlerResult === Progress) {
-          return Progress
+        if (handlerResult === IncorrectApiMethod) {
+          return IncorrectApiMethod
         } else {
           return Alt(handlerResult, ...possibleResultCode);
         }
-      }, Progress);
+      }, IncorrectApiMethod);
 
-      if (result === Progress) {
-        res.status(404).json({
-          message: "not found"
-        })
+      if (result === IncorrectApiMethod) {
+        res.status(404).json(NotFoundStandardMessage)
       }
     }
   }
