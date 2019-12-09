@@ -1,6 +1,6 @@
 {
   "name": "lambda-method",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Invoke Lambda method with all the express goodness",
   "main": "index.js",
   "scripts": {
