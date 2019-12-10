@@ -195,6 +195,10 @@ export namespace Api {
       let possibleResultCode = params.filter(x => is.number(x));
       let funcs = params.filter(x => is.function_(x)) as ApiFunction[];
       const result = funcs.reduce((result: any, handler) => {
+
+        if(result!=IncorrectApiMethod){
+          return result;
+        }
         const handlerResult = handler(req, res, next);
         if (handlerResult === IncorrectApiMethod) {
           return IncorrectApiMethod
