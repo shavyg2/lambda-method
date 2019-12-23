@@ -11,7 +11,7 @@ function Next(req: any, res: any, allHandlers: ApiFunction[]) {
 
   let handlerPosition = 0;
 
-  function next(err?: any) {
+  async function next(err?: any) {
     let status = 500;
 
     if (err) {
@@ -19,7 +19,11 @@ function Next(req: any, res: any, allHandlers: ApiFunction[]) {
     } else {
       let currentHandler = allHandlers[handlerPosition];
       if (currentHandler) {
-        currentHandler(req, res, next);
+        try{
+          await currentHandler(req, res, next);
+        }catch(e){
+          handleErrorResponse(e,res);
+        }
       } else {
         res.status(404).json(NotFoundStandardMessage)
       }
@@ -85,21 +89,7 @@ export function Api(...ApiParameters: Params) {
       })
       .catch(e => {
         console.log(e);
-        if (is.error(e)) {
-          res.status(500).json({
-            message: e.message,
-            stack: e.stack
-          });
-        } else if (is.object(e)) {
-          const { code, ...data } = e as any;
-          if (is.number(code)) {
-            return res.status(code).json(data);
-          } else {
-            return res.status(500).json(e);
-          }
-        } else {
-          return res.send(e);
-        }
+        handleErrorResponse(e,res);
       });
   };
 
@@ -109,6 +99,24 @@ export function Api(...ApiParameters: Params) {
   }
 }
 
+
+function handleErrorResponse(e:any,res:import("express").Response){
+  if (is.error(e)) {
+    res.status(500).json({
+      message: e.message,
+      stack: e.stack
+    });
+  } else if (is.object(e)) {
+    const { code, ...data } = e as any;
+    if (is.number(code)) {
+      return res.status(code).json(data);
+    } else {
+      return res.status(500).json(e);
+    }
+  } else {
+    return res.send(e);
+  }
+}
 
 const ApiFunction = Api;
 
