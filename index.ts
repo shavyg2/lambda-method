@@ -61,7 +61,7 @@ export function Api(...ApiParameters: Params) {
   const defaultStatusCode = is.number(returnCodes[0]) ? returnCodes[0] : 200;
 
   const promiseResolvingHandler = (req: any, res: import("express").Response, next: any) => {
-    Promise.resolve(
+    return Promise.resolve(
       new Promise((r, j) => {
         try {
           r(mainHandler(req, res, next));
